@@ -2,91 +2,110 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>142 | AUTENTICADOR INTEGRADO</title>
+    <title>142 | AUTENTICADOR DE ORIGEM</title>
     <script src="https://unpkg.com/openpgp@5.11.0/dist/openpgp.min.js"></script>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .terminal { width: 90%; max-width: 850px; border: 1px solid #00ff41; background: rgba(0,0,0,0.95); padding: 40px; box-shadow: 0 0 30px rgba(0,255,65,0.2); }
-        h1 { text-align: center; letter-spacing: 15px; text-shadow: 0 0 10px #00ff41; margin-bottom: 5px; }
-        .subtitle { text-align: center; font-size: 0.7rem; margin-bottom: 25px; opacity: 0.7; }
-        textarea { width: 100%; height: 220px; background: #000; color: #00ff41; border: 1px solid #004411; padding: 15px; font-size: 11px; resize: none; outline: none; box-sizing: border-box; }
-        button { width: 100%; background: #00ff41; color: #000; border: none; padding: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; letter-spacing: 3px; }
-        button:hover { background: #003300; color: #00ff41; border: 1px solid #00ff41; }
-        #status { margin-top: 25px; text-align: center; padding: 20px; border: 1px solid #111; min-height: 50px; line-height: 1.5; }
-        .valid { border-color: #00ff41 !important; color: #00ff41; background: rgba(0,255,65,0.1); }
-        .invalid { border-color: #ff0000 !important; color: #ff0000; background: rgba(255,0,0,0.1); }
-        .decrypted-msg { margin-top: 10px; color: #fff; font-style: italic; border-top: 1px dotted #004411; padding-top: 10px; }
+        /* UI ESTILO CICADA 3301 */
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { width: 90%; max-width: 800px; border: 1px solid #00ff41; padding: 40px; background: rgba(0,0,0,0.9); box-shadow: 0 0 20px #004411; }
+        h1 { text-align: center; letter-spacing: 15px; margin-bottom: 30px; }
+        textarea { width: 100%; height: 300px; background: #000; color: #00ff41; border: 1px solid #004411; padding: 15px; font-size: 12px; outline: none; box-sizing: border-box; }
+        button { width: 100%; background: #00ff41; color: #000; border: none; padding: 20px; font-weight: bold; margin-top: 20px; cursor: pointer; letter-spacing: 5px; }
+        button:hover { background: #003300; color: #00ff41; }
+        #result { margin-top: 30px; text-align: center; padding: 20px; border: 1px dashed #111; font-weight: bold; min-height: 40px; }
+        .valid { border-color: #00ff41 !important; color: #00ff41; background: rgba(0,255,65,0.05); }
+        .invalid { border-color: #ff0000 !important; color: #ff0000; background: rgba(255,0,0,0.05); }
     </style>
 </head>
 <body>
 
-<div class="terminal">
+<div class="container">
     <h1>142</h1>
-    <div class="subtitle">DECRYPT & VERIFY ENGINE v2.0</div>
-    <textarea id="input_text" placeholder="COLE O RESULTADO DO CYBERCHEF (BEGIN PGP MESSAGE)..."></textarea>
-    <button onclick="processMessage()">DESCRIPTOGRAFAR E VERIFICAR</button>
-    <div id="status">SISTEMA AGUARDANDO COMANDO...</div>
+    <textarea id="input" placeholder="COLE A MENSAGEM ASSINADA (PGP SIGNED MESSAGE) AQUI..."></textarea>
+    <button onclick="verify()">VERIFICAR AUTENTICIDADE</button>
+    <div id="result">AGUARDANDO INPUT...</div>
 </div>
 
 <script>
-const PRIV_KEY = `-----BEGIN PGP PRIVATE KEY BLOCK-----
-... (Sua Chave Privada vai aqui) ...
------END PGP PRIVATE KEY BLOCK-----`;
+// A CHAVE PÚBLICA DO 142 FICA FIXA NO CÓDIGO (COMO O SITE DO CICADA FAZ)
+const PUBLIC_KEY_142 = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: Keybase OpenPGP v2.1.15
+Comment: https://keybase.io/crypto
 
-const PUB_KEY = `-----BEGIN PGP PUBLIC KEY BLOCK-----
-... (Sua Chave Pública vai aqui) ...
+xo0EaVSHgAEEALiiw//n8Yw1BwfDnajuLG9PfVhUeNmUahLhgNz4UVGNfsgFhQv+
+GprSjBSP3fb9zh+BhsVqjEJSrCedJ0p0XbMjc0pPGbiJoHK/yDSgX5VBIZeqE2qL
+JsWOTGhkqMdbJkiCVafTuKxksVlxF+aRcScyGILYSpeoUSNx4OL2mxTlABEBAAHN
+EzE0MiA8MTQyQGVuaWdtYS5pbz7CtAQTAQoAHgUCaVSHgAIbLwMLCQcDFQoIAh4B
+AheAAxYCAQIZAQAKCRBW7Vdr1N+awHnUBACUHFOyjGJ2I3fsl8t72ECPvN7h3Emu
+x4g46jcri6pPJDUxneliwY/9HRBBmHC1EV3J5u2YuvIjmsrshfNmqRIxK9rUDidf
+w18WX2j6sEc77+447lS8F5cImtYNu7hQGaNxckHAKWxdcDEp8JOB0e/xgZY9Oo2p
+DzYhihshUsLSMc6NBGlUh4ABBAC6Ys2fYgCeVbBsO0Nr4eBbQrPjSiU273j5Y1yw
+3QdF9K5DDuYppL5+tILObYxe29vwzARRabZ/xfM9ISQ4RZV7UwYlSlxxfAfWm+0I
+PWWcPfai8XfpfN8se5KRddtGHY5xlfU7XIdZmT3uet0+xqRr9aFx4vSjTDNvRv/9
+C8rzYQARAQABwsCDBBgBCgAPBQJpVIeABQkPCZwAAhsuAKgJEFbtV2vU35rAnSAE
+GQEKAAYFAmlUh4AACgkQDs1obifANQ02PQP/WYiPwLnT103vRAB6RipKJwuGjvhe
+bCx20B/+sPCNvmazEicNDRom7+b0N7qTQd5JcFCPd+e5/8XqgBeG5Ro6X9+VP73S
+ahOVGrh++/649YOcGNNY6mlXpdCBC18AY9yHKZDjzPAPWNxrD6v2TNwb+rHnzGtd
+ggqLBtmUO2qCmHqsQAP/WOAJfS+QE+W8mSUXZBEg6Nwl4OLJeOc3N4yjBlykOY1w
+YoJkxFtQO3Uh6ymUHzmJ34aV/z9Yh20IoT9m5U649bcaczgRFnDHNQ/wkyAex5ms
+PPFVroNQ9zft89gcQb0RRtGFuO2EDG3XGpg00ZWoOjNKiY9YaN5evYB38+m7qm/O
+jQRpVIeAAQQAqUZxQHna97nC/btw2TIJpTnDRB79dBtKcwoxADhykKzkC6DwmQ6K
+UD8gFq2m77uiL5HpchKGPvYv2X3doIpWpglB9WtQumQF+3b/lM8Jl+cgVllom6D4
+3UvBhYDufuB6TKXT/Qvdi5mZDSY8/ZALdg+rpgMl9wUAxAF5A6HLtNEAEQEAAcLA
+gwQYAQoADwUCaVSHgAUJA8JnAAIbLgCoCRBW7Vdr1N+awJ0gBBkBCgAGBQJpVIeA
+AAoJEHWGzUE7tI73FwQD/jSAUXxc7Gsl9g7t8sqR5e6NdmiEUEZRlfuuEoQBkF5c
+q/vR4qAEyl4sg26iqWbuwJgaJ9QP03T40u7Yris1DWPFMGOW9G53ZGWVaDpG9Vja
+GASdv6aWk35r3BlFns4RcpHTJjK1l27yi0o6U8oyOzGIEq8dV+JKJPKDIHMnukbY
+KiQD/1oj2xq/hsz3KVNvhFThu6e6Y1uvS07ZHGYmSot7ET+qKdstYJ0TYAEudgEf
+39eD80XVhuApu2vdtVbjrUt9kxJ5v/QpSp+hcJKfPF7QifW3dc6e5EA7y3pMgDQM
+ctWXHRh9EOErZrmYAbwBKgge1WA2csuzAAl0cwuF2WocZVmd
+=k76m
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-const PASSPHRASE = 'enigma-142-auth';
-
-async function processMessage() {
-    const armoredMsg = document.getElementById("input_text").value.trim();
-    const status = document.getElementById("status");
+async function verify() {
+    const input = document.getElementById("input").value.trim();
+    const resultDiv = document.getElementById("result");
     
-    if(!armoredMsg) {
-        status.innerHTML = "ERRO: ENTRADA VAZIA";
-        status.className = "invalid";
-        return;
-    }
-
-    status.innerHTML = "INICIANDO DECRIPTAÇÃO...";
-    status.className = "";
+    resultDiv.innerHTML = "PROCESSANDO...";
+    resultDiv.className = "";
 
     try {
-        // 1. Carregar Chaves
-        const privateKey = await openpgp.decryptKey({
-            privateKey: await openpgp.readKey({ armoredKey: PRIV_KEY }),
-            passphrase: PASSPHRASE
-        });
-
-        const publicKey = await openpgp.readKey({ armoredKey: PUB_KEY });
-
-        // 2. Ler a Mensagem
-        const message = await openpgp.readMessage({ armoredMessage: armoredMsg });
-
-        // 3. Descriptografar e Verificar Assinatura simultaneamente
-        const { data: decrypted, signatures } = await openpgp.decrypt({
-            message,
-            decryptionKeys: privateKey,
-            verificationKeys: publicKey
-        });
-
-        // 4. Checar validade da assinatura
-        const isVerified = await signatures[0].verified;
-
-        if (isVerified) {
-            status.className = "valid";
-            status.innerHTML = `<strong>ASSINATURA CONFIRMADA [ORIGEM 142]</strong><br>
-                               <div class="decrypted-msg">CONTEÚDO: ${decrypted}</div>`;
-        } else {
-            status.className = "invalid";
-            status.innerHTML = "ALERTA: MENSAGEM DESCRIPTOGRAFADA, MAS ASSINATURA INVÁLIDA!";
+        const publicKey = await openpgp.readKey({ armoredKey: PUBLIC_KEY_142 });
+        
+        // Verifica se a mensagem colada é uma "Signed Message" (como a da foto que você mandou)
+        if (input.includes("BEGIN PGP SIGNED MESSAGE")) {
+            const message = await openpgp.readCleartextMessage({ cleartext: input });
+            const verification = await openpgp.verify({
+                message: message,
+                verificationKeys: publicKey
+            });
+            const valid = await verification.signatures[0].verified;
+            showResult(valid);
+        } 
+        // Verifica se é uma mensagem encriptada e assinada (Encrypt & Sign do CyberChef)
+        else if (input.includes("BEGIN PGP MESSAGE")) {
+            resultDiv.innerHTML = "ERRO: ESTA MENSAGEM ESTÁ CRIPTOGRAFADA. USE APENAS MENSAGENS ASSINADAS (CLEAR SIGNED).";
+            resultDiv.className = "invalid";
+        } 
+        else {
+            resultDiv.innerHTML = "ERRO: FORMATO PGP NÃO RECONHECIDO.";
+            resultDiv.className = "invalid";
         }
 
-    } catch (err) {
-        status.className = "invalid";
-        status.innerHTML = "FALHA CRÍTICA: Erro na chave ou nos dados.";
-        console.error(err);
+    } catch (e) {
+        resultDiv.innerHTML = "ERRO NA VERIFICAÇÃO: " + e.message;
+        resultDiv.className = "invalid";
+    }
+}
+
+function showResult(isValid) {
+    const resultDiv = document.getElementById("result");
+    if (isValid) {
+        resultDiv.innerHTML = "SUCESSO: ESTA MENSAGEM É AUTÊNTICA DO 142.";
+        resultDiv.className = "valid";
+    } else {
+        resultDiv.innerHTML = "ALERTA: ESTA MENSAGEM NÃO FOI ASSINADA PELO 142.";
+        resultDiv.className = "invalid";
     }
 }
 </script>
