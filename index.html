@@ -2,158 +2,126 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>142 | VALIDADOR DE PROTOCOLO OPACO</title>
+    <title>142 | VERIFICADOR DE ASSINATURA</title>
     <script src="https://unpkg.com/openpgp@5.11.0/dist/openpgp.min.js"></script>
     <style>
-        /* ESTILO TERMINAL 142 */
-        body { 
-            background: #050505; 
-            color: #00ff41; 
-            font-family: 'Courier New', monospace; 
-            display: flex; 
+        /* UI ESTILO HACKER/CICADA */
+        body {
+            background-color: #0d0d0d;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
             flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-            margin: 0; 
-        }
-        .terminal { 
-            width: 90%; 
-            max-width: 850px; 
-            border: 1px solid #00ff41; 
-            background: rgba(0,0,0,0.95); 
-            padding: 40px; 
-            box-shadow: 0 0 30px rgba(0,255,65,0.2); 
-        }
-        h1 { text-align: center; letter-spacing: 15px; text-shadow: 0 0 10px #00ff41; }
-        .subtitle { text-align: center; font-size: 0.7rem; margin-bottom: 25px; opacity: 0.7; letter-spacing: 2px; }
-        
-        textarea { 
-            width: 100%; 
-            height: 250px; 
-            background: #000; 
-            color: #00ff41; 
-            border: 1px solid #004411; 
-            padding: 15px; 
-            font-size: 11px; 
-            resize: none; 
-            outline: none; 
-            box-sizing: border-box; 
-        }
-        
-        button { 
-            width: 100%; 
-            background: #00ff41; 
-            color: #000; 
-            border: none; 
-            padding: 18px; 
-            font-weight: bold; 
-            margin-top: 20px; 
-            cursor: pointer; 
-            letter-spacing: 3px; 
-            text-transform: uppercase;
-        }
-        
-        button:hover { background: #003300; color: #00ff41; border: 1px solid #00ff41; }
-        
-        #status_box { 
-            margin-top: 25px; 
-            text-align: center; 
-            padding: 20px; 
-            border: 1px solid #111; 
-            min-height: 60px; 
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
         }
 
-        .valid { border-color: #00ff41 !important; color: #00ff41; background: rgba(0,255,65,0.1); }
-        .invalid { border-color: #ff0000 !important; color: #ff0000; background: rgba(255,0,0,0.1); }
-        .decrypted-msg { 
-            margin-top: 15px; 
-            color: #fff; 
-            font-style: italic; 
-            border-top: 1px dotted #004411; 
-            padding-top: 15px; 
-            text-align: left;
-            word-break: break-all;
+        .container {
+            width: 90%;
+            max-width: 800px;
+            border: 1px solid #333;
+            padding: 30px;
+            background: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            letter-spacing: 5px;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 15px;
+            margin-top: 0;
+        }
+
+        .instructions {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #111;
+            color: #eee;
+            border: 1px solid #333;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #00ff41;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 15px;
+            background: #004411;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #00ff41;
+            color: #000;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            display: none; /* Escondido até ter resultado */
+            border: 1px dashed;
+        }
+
+        .success {
+            border-color: #00ff41;
+            color: #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        .failure {
+            border-color: #ff0000;
+            color: #ff0000;
+            background: rgba(255, 0, 0, 0.05);
         }
     </style>
 </head>
 <body>
 
-<div class="terminal">
-    <h1>142</h1>
-    <div class="subtitle">ENIGMA VERIFICATION SYSTEM // ENCRYPTED & SIGNED MODE</div>
+<div class="container">
+    <h1>142 PUBLIC VERIFIER</h1>
     
-    <textarea id="pgp_input" placeholder="COLE O RESULTADO DO CYBERCHEF AQUI (-----BEGIN PGP MESSAGE-----)"></textarea>
-    
-    <button onclick="analyzeMessage()">Analisar Assinatura do 142</button>
-    
-    <div id="status_box">SISTEMA EM STANDBY...</div>
+    <div class="instructions">
+        COLE A MENSAGEM ASSINADA (BEGIN PGP SIGNED MESSAGE) ABAIXO:
+    </div>
+
+    <textarea id="pgp-message" placeholder="-----BEGIN PGP SIGNED MESSAGE-----&#10;Hash: SHA512&#10;&#10;Sua mensagem aqui...&#10;-----BEGIN PGP SIGNATURE-----&#10;..."></textarea>
+
+    <button onclick="verifySignature()">VERIFICAR AUTENTICIDADE</button>
+
+    <div id="result"></div>
 </div>
 
 <script>
-/* ATENÇÃO: AS CHAVES ESTÃO NO CÓDIGO PARA AUTOMAÇÃO TOTAL.
-   SE VOCÊ POSTAR ISSO NO GITHUB PÚBLICO, SUA CHAVE PRIVADA SERÁ EXPOSTA.
-*/
-
-const PRIV_KEY = `-----BEGIN PGP PRIVATE KEY BLOCK-----
-Version: Keybase OpenPGP v2.1.15
-Comment: https://keybase.io/crypto
-
-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
-1WA2csuzAAl0cwuF2WocZVmd
-=ANnW
------END PGP PRIVATE KEY BLOCK-----`;
-
-const PUB_KEY = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+    // AQUI ESTÁ APENAS A SUA CHAVE PÚBLICA. 
+    // ISSO É SEGURO PARA PUBLICAR.
+    const publicKeyArmored = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: Keybase OpenPGP v2.1.15
 Comment: https://keybase.io/crypto
 
@@ -187,59 +155,63 @@ ctWXHRh9EOErZrmYAbwBKgge1WA2csuzAAl0cwuF2WocZVmd
 =k76m
 -----END PGP PUBLIC KEY BLOCK-----`;
 
-const PASSPHRASE = 'enigma-142-auth';
+    async function verifySignature() {
+        const messageText = document.getElementById('pgp-message').value.trim();
+        const resultDiv = document.getElementById('result');
+        
+        // Reset da UI
+        resultDiv.style.display = 'block';
+        resultDiv.className = ''; 
+        resultDiv.innerHTML = 'ANALISANDO ASSINATURA...';
+        resultDiv.style.color = '#fff';
 
-async function analyzeMessage() {
-    const input = document.getElementById("pgp_input").value.trim();
-    const statusBox = document.getElementById("status_box");
-    
-    statusBox.innerHTML = "INICIANDO DECRIPTAÇÃO E ANÁLISE...";
-    statusBox.className = "";
+        try {
+            // 1. Verificar se é uma mensagem assinada em texto claro (Cleartext)
+            if (!messageText.includes('-----BEGIN PGP SIGNED MESSAGE-----')) {
+                throw new Error("Formato inválido. Use 'PGP Cleartext Sign' no CyberChef.");
+            }
 
-    if(!input.includes("-----BEGIN PGP MESSAGE-----")) {
-        statusBox.innerHTML = "ERRO: O input deve ser um bloco PGP MESSAGE (Encrypt & Sign).";
-        statusBox.className = "invalid";
-        return;
-    }
+            // 2. Carregar a chave pública do sistema
+            const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
 
-    try {
-        // 1. CARREGAR E DESBLOQUEAR A CHAVE PRIVADA
-        const privateKey = await openpgp.decryptKey({
-            privateKey: await openpgp.readKey({ armoredKey: PRIV_KEY }),
-            passphrase: PASSPHRASE
-        });
+            // 3. Ler a mensagem assinada
+            const message = await openpgp.readCleartextMessage({ cleartext: messageText });
 
-        // 2. CARREGAR A CHAVE PÚBLICA PARA VERIFICAÇÃO
-        const publicKey = await openpgp.readKey({ armoredKey: PUB_KEY });
+            // 4. Verificar a assinatura usando APENAS a chave pública
+            const verificationResult = await openpgp.verify({
+                message: message,
+                verificationKeys: publicKey
+            });
 
-        // 3. LER A MENSAGEM OPACO
-        const message = await openpgp.readMessage({ armoredMessage: input });
+            // 5. Validar o resultado
+            const { verified, keyID } = verificationResult.signatures[0];
+            
+            try {
+                await verified; // Isso lança erro se a assinatura for inválida
+                
+                // SE CHEGAR AQUI, É SUCESSO
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <h3 style="margin:0">VERIFICADO: ORIGEM CONFIRMADA</h3>
+                    <p>ASSINADO POR: 142 (ID: ${keyID.toHex()})</p>
+                    <p>INTEGRIDADE: INTACTA</p>
+                `;
 
-        // 4. DESCRIPTOGRAFAR E VERIFICAR
-        const { data: decrypted, signatures } = await openpgp.decrypt({
-            message,
-            decryptionKeys: privateKey,
-            verificationKeys: publicKey
-        });
+            } catch (e) {
+                // SE A ASSINATURA NÃO BATER
+                throw new Error("Assinatura inválida! O texto foi alterado ou não foi assinado pelo 142.");
+            }
 
-        // 5. VALIDAR ASSINATURA INTERNA
-        const isVerified = await signatures[0].verified;
-
-        if (isVerified) {
-            statusBox.className = "valid";
-            statusBox.innerHTML = `<strong>ASSINATURA CONFIRMADA [ORIGEM 142]</strong><br>
-                                   <div class="decrypted-msg">MENSAGEM EXTRAÍDA:<br>${decrypted}</div>`;
-        } else {
-            statusBox.className = "invalid";
-            statusBox.innerHTML = "ALERTA: CONTEÚDO ACESSADO, MAS A ASSINATURA É FALSA!";
+        } catch (error) {
+            console.error(error);
+            resultDiv.className = 'failure';
+            resultDiv.innerHTML = `
+                <h3 style="margin:0">FALHA NA VERIFICAÇÃO</h3>
+                <p>${error.message}</p>
+            `;
         }
-
-    } catch (err) {
-        statusBox.className = "invalid";
-        statusBox.innerHTML = "FALHA CRÍTICA: Não foi possível abrir o pacote. Chave ou Passphrase incorretos.";
-        console.error(err);
     }
-}
 </script>
+
 </body>
 </html>
