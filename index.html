@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGP Message Verifier</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/5.11.0/openpgp.min.js"></script>
+    <script src="openpgp.min.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
         textarea { width: 100%; height: 150px; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; }
@@ -16,13 +16,13 @@
 </head>
 <body>
     <h1>PGP Message Verifier</h1>
-    <p>Paste the full PGP signed message (including `-----BEGIN PGP SIGNED MESSAGE-----` and `-----BEGIN PGP SIGNATURE-----` blocks), and the sender's public key to verify the signature.</p>
+    <p>Paste the full PGP signed message and the sender's public key.</p>
 
     <label for="signedMessage">Signed Message:</label>
     <textarea id="signedMessage" placeholder="Paste the full signed message here..."></textarea>
 
     <label for="publicKey">Sender's Public Key:</label>
-    <textarea id="publicKey" placeholder="Paste the sender's public key here (BEGIN PGP PUBLIC KEY BLOCK)..."></textarea>
+    <textarea id="publicKey" placeholder="Paste the sender's public key here..."></textarea>
 
     <button onclick="verifyMessage()">Verify Message</button>
 
@@ -38,18 +38,17 @@
             resultArea.className = 'result unverified';
             resultArea.textContent = 'Verifying...';
 
-            if (!signedMessage || !publicKeyArmored) {
+            // Verifica se a biblioteca carregou do seu arquivo local
+            if (typeof openpgp === 'undefined') {
                 resultArea.className = 'result error';
-                resultArea.textContent = 'Error: Please enter both the signed message and the public key.';
+                resultArea.textContent = 'Error: A biblioteca openpgp.min.js não foi encontrada no seu servidor GitHub.';
                 return;
             }
 
             try {
-                // CORREÇÃO: Sintaxe moderna para ler a chave e a mensagem
                 const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
                 const message = await openpgp.readCleartextMessage({ cleartextMessage: signedMessage });
 
-                // CORREÇÃO: Sintaxe moderna para verificação
                 const verificationResult = await openpgp.verify({
                     message,
                     verificationKeys: publicKey
@@ -58,7 +57,7 @@
                 const { verified } = verificationResult.signatures[0];
                 
                 try {
-                    await verified; // Verifica se a assinatura é matematicamente válida
+                    await verified;
                     resultArea.className = 'result verified';
                     resultArea.textContent = 'Success: The message signature is VALID.';
                 } catch (e) {
