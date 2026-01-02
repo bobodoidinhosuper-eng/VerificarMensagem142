@@ -2,78 +2,25 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3301 // VERIFIER</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/5.11.0/openpgp.min.js"></script>
-    <style>
-        :root { --c: #00ff41; --bg: #050505; }
-        body { background: var(--bg); color: var(--c); font-family: monospace; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding-top: 50px; }
-        .container { width: 90%; max-width: 700px; border: 1px solid var(--c); padding: 20px; box-shadow: 0 0 15px rgba(0,255,65,0.2); background: rgba(0,0,0,0.9); }
-        textarea { width: 100%; height: 250px; background: #000; color: var(--c); border: 1px solid #131; padding: 10px; box-sizing: border-box; margin: 15px 0; outline: none; }
-        button { background: var(--c); color: #000; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; letter-spacing: 2px; }
-        button:hover { background: #fff; }
-        #result { margin-top: 20px; padding: 15px; border: 1px dashed var(--c); display: none; white-space: pre-wrap; font-size: 0.9em; }
-        .valid { color: #0f4; border-color: #0f4 !important; }
-        .invalid { color: #f00; border-color: #f00 !important; }
-        h1 { text-align: center; border-bottom: 1px solid var(--c); padding-bottom: 10px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-    <h1>VERIFICADOR_DE_ASSINATURA</h1>
-    <p>Apenas a verdade pode ser verificada.</p>
-    <textarea id="msg" placeholder="Cole aqui a mensagem PGP completa..."></textarea>
-    <button onclick="verify()">EXECUTAR PROTOCOLO DE AUTENTICAÇÃO</button>
-    <div id="result"></div>
-</div>
+    <div class="container">
+        <h1>CICADA 3301 VERIFIER</h1>
+        <p>[ SISTEMA DE VALIDAÇÃO DE ASSINATURA ]</p>
+        
+        <label for="signedMessage">MENSAGEM ASSINADA (BEGIN PGP SIGNED MESSAGE):</label>
+        <textarea id="signedMessage" placeholder="Cole aqui o bloco completo começando com -----BEGIN PGP SIGNED MESSAGE-----"></textarea>
+        
+        <button onclick="verifySignature()">VERIFICAR INTEGRIDADE</button>
 
-<script>
-const myPubKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
-Version: BCPG v1.58
+        <div id="result"></div>
+    </div>
 
-mQENBGlUttoBCACQ5OwZp2iFGgPkPNAks1nGWlhgP42wN1Oh7NiVBCts0tWvUN9v
-COIfnAM0Pfr9JqBDwibI6lkdXxXOZ6aF+agTc2YMmLoQCZWHh5x+64Q7GCUZpg98
-dNFFvZJFeFH7NizeE8j0yHS/Nyxy4CNWOV0EE/JSCfxXmsk89XGUFsOnVrhLKEEG
-LjbCgS32EGPkX6BoLY9Fao+20y2tH7ev30Lg+F8TBS8yTrnyVfGMr/WlPg6FLZM4
-kvl08wOEn4vmdc037XamObN4q53isW618HicC4BQCovXuYztuUbaw7v0OtC3Cyel
-K52aHMqOId8VeOGZsFmynFIqmGZGLmNQ0O0DABEBAAG0G2JvYm9kb2lkaW5ob3N1
-cGVyQGdtYWlsLmNvbYkBHAQQAQIABgUCaVS22gAKCRBie9tYg9rZI5zLB/9pIWSr
-CXpHOjy9tDpIU/qrZIrSFF42igBK5tf+DEZFUQNlskE6yx1l7VUUNg+XEfTCQFy1
-TD1tAeXHHblxh1w9b7l4A0MwXt6pY2UEjz5cbzLDQ8cJuqXhTvjABNvM05ElyRXG
-GQYFw3SrpBK+47ufMFrPvv3J77t15uAB+oSvkzxZaazJKPFjQNLHnzPDkhT7tE/l
-6ZoG5/SNDJjCpM4ZHUtD6+T/59V3/YBekYRbLm5/B2uF2+UsKr4pnm03pfLSms7a
-GDYNq5MODVnzMfQj5qfKmHViu09EjFE2ZptXLAGE8w6UjBPqafdRMxFBxB0Qyj13
-y1OrGW27kqthI+ux
-=kIfO
------END PGP PUBLIC KEY BLOCK-----`;
-
-async function verify() {
-    const res = document.getElementById('result');
-    const input = document.getElementById('msg').value.trim(); // Remove espaços extras
-    res.style.display = 'block';
-    res.className = '';
-    res.innerHTML = "Lendo blocos de dados...";
-
-    try {
-        const publicKey = await openpgp.readKey({ armoredKey: myPubKey });
-        const message = await openpgp.readCleartextMessage({ cleartextMessage: input });
-
-        const verification = await openpgp.verify({
-            message,
-            verificationKeys: publicKey
-        });
-
-        const { verified, keyID } = verification.signatures[0];
-        await verified;
-
-        res.innerHTML = "ASSINATURA VÁLIDA!\n\nID: " + keyID.toHex().toUpperCase() + "\nORIGEM: bobodoidinho";
-        res.classList.add('valid');
-    } catch (e) {
-        console.error(e);
-        res.innerHTML = "ALERTA: ASSINATURA INVÁLIDA.\n\nO conteúdo da mensagem ou a chave não coincidem.";
-        res.classList.add('invalid');
-    }
-}
-</script>
+    <script src="script.js"></script>
 </body>
 </html>
