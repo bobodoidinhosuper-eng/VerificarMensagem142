@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PGP Message Verifier</title>
-    <!-- Include OpenPGP.js library from a CDN -->
-    <script src="cdnjs.cloudflare.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openpgp/5.11.0/openpgp.min.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
         textarea { width: 100%; height: 150px; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; }
@@ -32,42 +31,41 @@
     <script>
         async function verifyMessage() {
             const signedMessage = document.getElementById('signedMessage').value;
-            const publicKey = document.getElementById('publicKey').value;
+            const publicKeyArmored = document.getElementById('publicKey').value;
             const resultArea = document.getElementById('resultArea');
 
             resultArea.style.display = 'block';
             resultArea.className = 'result unverified';
             resultArea.textContent = 'Verifying...';
 
-            if (!signedMessage || !publicKey) {
+            if (!signedMessage || !publicKeyArmored) {
                 resultArea.className = 'result error';
                 resultArea.textContent = 'Error: Please enter both the signed message and the public key.';
                 return;
             }
 
             try {
-                // Import the public key
-                const publicKeys = await openpgp.key.readArmored(publicKey);
-                
-                // Read the signed message
-                const message = await openpgp.message.readArmored(signedMessage);
+                // CORREÇÃO: Sintaxe moderna para ler a chave e a mensagem
+                const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
+                const message = await openpgp.readCleartextMessage({ cleartextMessage: signedMessage });
 
-                // Verify the message
+                // CORREÇÃO: Sintaxe moderna para verificação
                 const verificationResult = await openpgp.verify({
                     message,
-                    publicKeys
+                    verificationKeys: publicKey
                 });
 
-                // Get the validity of the signature
-                const isValid = verificationResult.signatures[0].valid;
-
-                if (isValid) {
+                const { verified } = verificationResult.signatures[0];
+                
+                try {
+                    await verified; // Verifica se a assinatura é matematicamente válida
                     resultArea.className = 'result verified';
                     resultArea.textContent = 'Success: The message signature is VALID.';
-                } else {
+                } catch (e) {
                     resultArea.className = 'result error';
                     resultArea.textContent = 'Failure: The message signature is INVALID.';
                 }
+
             } catch (error) {
                 resultArea.className = 'result error';
                 resultArea.textContent = `An error occurred: ${error.message}`;
