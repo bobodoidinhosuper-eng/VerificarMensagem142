@@ -1,51 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PGP Message Verifier</title>
+    <title>E142 - Verificador de Assinatura (Comunidade)</title>
+    
     <script src="openpgp.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
-        textarea { width: 100%; height: 150px; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; }
-        .result { padding: 10px; margin-top: 10px; font-weight: bold; }
-        .verified { background-color: #e0f7fa; border-left: 5px solid #00acc1; }
-        .unverified { background-color: #ffecb3; border-left: 5px solid #ff9800; }
-        .error { background-color: #ffcdd2; border-left: 5px solid #f44336; }
+        body {
+            background-color: #0a0a0a;
+            color: #dcdcdc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            border-bottom: 2px solid #333;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 1.8rem;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        .disclaimer {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+        }
+
+        .section-label {
+            display: block;
+            margin: 20px 0 8px;
+            font-weight: bold;
+            color: #aaa;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            background: #121212;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            padding: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            box-sizing: border-box;
+            border-radius: 4px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        textarea:focus {
+            border-color: #555;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: #333;
+            border-color: #666;
+        }
+
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 4px;
+            display: none;
+            font-family: monospace;
+            border-left: 6px solid;
+        }
+
+        /* Cores de status da comunidade */
+        .status-checking { background: #1a1a1a; border-color: #555; color: #ccc; }
+        .status-valid { background: #0a210f; border-color: #2ecc71; color: #2ecc71; }
+        .status-invalid { background: #210a0a; border-color: #e74c3c; color: #e74c3c; }
+
+        .info-box {
+            background: #151515;
+            padding: 15px;
+            margin-top: 30px;
+            border: 1px solid #222;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
-    <h1>PGP Message Verifier</h1>
-    <p>Paste the full PGP signed message and the sender's public key.</p>
 
-    <label for="signedMessage">Signed Message:</label>
-    <textarea id="signedMessage" placeholder="Paste the full signed message here..."></textarea>
+    <div class="header">
+        <h1>ENIGMA 142 // TOOLSET</h1>
+        <p class="disclaimer">Ferramenta independente para verificação de comunicações assinadas.</p>
+    </div>
 
-    <label for="publicKey">Sender's Public Key:</label>
-    <textarea id="publicKey" placeholder="Paste the sender's public key here..."></textarea>
+    <p>Use este validador para confirmar se uma mensagem atribuída ao <b>142</b> é autêntica. Cole a mensagem completa e a chave pública correspondente.</p>
 
-    <button onclick="verifyMessage()">Verify Message</button>
+    <label class="section-label" for="signedMessage">Mensagem Assinada (PGP Signed Message):</label>
+    <textarea id="signedMessage" placeholder="-----BEGIN PGP SIGNED MESSAGE-----"></textarea>
 
-    <div id="resultArea" class="result" style="display: none;"></div>
+    <label class="section-label" for="publicKey">Chave Pública do Remetente:</label>
+    <textarea id="publicKey" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+
+    <button onclick="verifyMessage()">ANALISAR ASSINATURA</button>
+
+    <div id="resultArea" class="result"></div>
+
+    <div class="info-box">
+        <b>Nota dos Investigadores:</b><br>
+        Esta ferramenta processa a criptografia localmente no seu navegador. Nenhuma chave ou mensagem é enviada para servidores externos. Proteja sua privacidade.
+    </div>
 
     <script>
         async function verifyMessage() {
-            const signedMessage = document.getElementById('signedMessage').value;
-            const publicKeyArmored = document.getElementById('publicKey').value;
+            const signedMessage = document.getElementById('signedMessage').value.trim();
+            const publicKeyArmored = document.getElementById('publicKey').value.trim();
             const resultArea = document.getElementById('resultArea');
 
-            resultArea.style.display = 'block';
-            resultArea.className = 'result unverified';
-            resultArea.textContent = 'Verifying...';
-
-            // Verifica se a biblioteca carregou do seu arquivo local
-            if (typeof openpgp === 'undefined') {
-                resultArea.className = 'result error';
-                resultArea.textContent = 'Error: A biblioteca openpgp.min.js não foi encontrada no seu servidor GitHub.';
+            if (!signedMessage || !publicKeyArmored) {
+                resultArea.style.display = 'block';
+                resultArea.className = 'result status-invalid';
+                resultArea.textContent = 'Erro: É necessário preencher ambos os campos para validação.';
                 return;
             }
 
+            resultArea.style.display = 'block';
+            resultArea.className = 'result status-checking';
+            resultArea.textContent = 'Calculando hashes e verificando integridade...';
+
             try {
+                // Leitura da chave e mensagem usando a biblioteca local
                 const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
                 const message = await openpgp.readCleartextMessage({ cleartextMessage: signedMessage });
 
@@ -58,16 +160,16 @@
                 
                 try {
                     await verified;
-                    resultArea.className = 'result verified';
-                    resultArea.textContent = 'Success: The message signature is VALID.';
+                    resultArea.className = 'result status-valid';
+                    resultArea.innerHTML = '<strong>VERIFICAÇÃO CONCLUÍDA</strong><br>Resultado: A assinatura é VÁLIDA e pertence ao dono desta chave.';
                 } catch (e) {
-                    resultArea.className = 'result error';
-                    resultArea.textContent = 'Failure: The message signature is INVALID.';
+                    resultArea.className = 'result status-invalid';
+                    resultArea.innerHTML = '<strong>ALERTA DE SEGURANÇA</strong><br>Resultado: A assinatura é INVÁLIDA. O conteúdo pode ter sido alterado.';
                 }
 
             } catch (error) {
-                resultArea.className = 'result error';
-                resultArea.textContent = `An error occurred: ${error.message}`;
+                resultArea.className = 'result status-invalid';
+                resultArea.textContent = `Erro técnico: ${error.message}`;
             }
         }
     </script>
